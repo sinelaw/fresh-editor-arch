@@ -32,8 +32,9 @@ if [[ "$CURRENT_VERSION" == "$LATEST_VERSION" ]]; then
     exit 0
 fi
 
-# Construct download URL for x86_64
-TARBALL_URL="https://github.com/$REPO/releases/download/v$LATEST_VERSION/fresh-editor-x86_64-unknown-linux-gnu.tar.xz"
+# The source tarball this PKGBUILD builds from — not the prebuilt binary one,
+# which is what fresh-editor-bin uses.
+TARBALL_URL="https://github.com/$REPO/releases/download/v$LATEST_VERSION/fresh-editor-$LATEST_VERSION-source.tar.gz"
 
 echo "Downloading tarball to compute sha256..."
 echo "URL: $TARBALL_URL"
