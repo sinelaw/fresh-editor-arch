@@ -14,7 +14,7 @@ pkgdesc="A lightweight, fast terminal-based text editor with LSP support and Typ
 url="https://sinelaw.github.io/fresh/"
 license=("GPL-2.0-only")
 arch=('x86_64')
-depends=("gcc-libs" "glibc")
+depends=("gcc-libs" "glibc" "hicolor-icon-theme" "xz")
 makedepends=("cargo" "clang")
 conflicts=("fresh-editor-bin")
 # Mixed Rust/C project: makepkg's lto option puts -flto in CFLAGS, so clang
