@@ -1,21 +1,19 @@
-# Maintainer: Noam Lewis
+# Maintainer:
+# Contributor: Noam Lewis
 #
 # SPDX-License-Identifier: 0BSD
 #
-# Source package - builds from source.
-#
-# If this is ever promoted to [extra]: drop aarch64 (Arch Linux ARM is a
-# separate project), set the receipt channel to "pacman", and consider adding
-# check() { cargo test --frozen --workspace --lib } — omitted here because in
-# the AUR that dev-profile rebuild is paid by every user on every install.
+# [extra] variant of the AUR fresh-editor package. Differences from the AUR
+# version: x86_64 only, receipt channel "pacman", and a check().
 
 pkgname=fresh-editor
 pkgver=0.4.7
-pkgrel=1
+# Promotion bump, so AUR users upgrade into the repo version cleanly.
+pkgrel=2
 pkgdesc="A lightweight, fast terminal-based text editor with LSP support and TypeScript plugins"
 url="https://sinelaw.github.io/fresh/"
 license=("GPL-2.0-only")
-arch=('x86_64' 'aarch64')
+arch=('x86_64')
 depends=("gcc-libs" "glibc")
 makedepends=("cargo" "clang")
 conflicts=("fresh-editor-bin")
@@ -28,12 +26,12 @@ sha256sums=("e313fdf0eb01aa8b5c024218241a153999ec9c8ba538ad1ba41f407c884b22c0")
 
 prepare() {
     cd "fresh-$pkgver"
-    # The tree pins a toolchain in rust-toolchain.toml; override it so rustup
-    # users build with their stable instead of downloading the pinned version.
+    # The tree pins a toolchain in rust-toolchain.toml; override it so the
+    # build uses the packaged stable rather than the pinned version.
     export RUSTUP_TOOLCHAIN=stable
     # Deliberately not --target-filtered: the filtered fetch omits crates the
-    # build still resolves (platform-gated ones), which makes build()'s
-    # --frozen fail. Costs a larger download, buys a truly offline build.
+    # build still resolves (platform-gated ones), which makes --frozen fail
+    # below. Costs a larger download, buys a truly offline build.
     cargo fetch --locked
 }
 
@@ -43,12 +41,22 @@ build() {
     export CARGO_TARGET_DIR=target
     export CC=clang
     # Bake the install channel into the binary (compile-time provenance).
-    export FRESH_BUILD_CHANNEL=aur
+    export FRESH_BUILD_CHANNEL=pacman
     # --frozen keeps the build offline and pinned; it only holds because
     # prepare() fetches the whole lockfile rather than one target's slice.
     # Default features on purpose, and never --all-features: that would enable
     # fresh-update/insecure-endpoints, which must never ship in a real build.
     cargo build --frozen --release
+}
+
+check() {
+    cd "fresh-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    export CC=clang
+    # Unit tests only: the integration suites want a TTY, network and a real
+    # $HOME, none of which a clean chroot provides.
+    cargo test --frozen --workspace --lib
 }
 
 package() {
@@ -63,18 +71,16 @@ package() {
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
     # Provenance receipt: found relative to the binary, so /usr/bin/fresh
-    # resolves it here. Keeps self-update from touching a pacman-owned file.
+    # resolves it here. Tells the editor pacman owns this install, so the
+    # self-update path defers instead of writing to /usr.
     install -dm755 "$pkgdir/usr/share/$pkgname"
     cat > "$pkgdir/usr/share/$pkgname/install-receipt.toml" <<EOF
 schema = 1
-channel = "aur"
+channel = "pacman"
 version = "$pkgver"
 package_name = "fresh-editor"
 managed = true
 self_update = false
-
-[hints]
-aur_pkg = "fresh-editor"
 EOF
 
     # Plugins, themes and keymaps are compiled into the binary (embed-plugins
